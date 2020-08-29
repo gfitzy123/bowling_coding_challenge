@@ -14,6 +14,9 @@ const Frame = sequelize.define('Frame', {
   attempts: {
     type: Sequelize.INTEGER,
   },
+  allowedAttempts: {
+    type: Sequelize.INTEGER,
+  },
   score: {
     type: Sequelize.INTEGER,
   },
