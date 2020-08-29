@@ -1,8 +1,9 @@
 const Sequelize = require('sequelize');
-const path = require('path');
+
+const db = process.env.NODE_ENV === "test" ? "bowling-test" : "bowling";
 
 const connection = {
-    database: 'bowling',
+    database: db,
     username: 'postgres',
     password: 'postgres',
     host: 'localhost',

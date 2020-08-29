@@ -6,7 +6,7 @@ const Game = require('../api/models/Game');
 router.get('/:id', async function(req, res) {
   const game = await Game.findOne({ id: req.query.id});
   const response = {
-    code: 200, 
+    status: 200, 
     message: 'Game succesfully fetched.',
     data: game
     }
@@ -17,7 +17,7 @@ router.get('/:id', async function(req, res) {
 router.get('/', async function(res) {
   const games = await Game.findAll();
   const response = {
-        code: 200, 
+    status: 200, 
         message: 'Games succesfully fetched.',
         data: games
     }
@@ -32,14 +32,14 @@ router.post('/', async function(req, res) {
         runningScore: 0
     });
     const response = {
-        code: 200, 
+      status: 200, 
         message: 'Game created!',
         data: game
     }
     res.status(200).send(response)
   } else {
     const response = {
-        code: 500, 
+      status: 500, 
         message: 'A "userId" field is required to create a game.',
         data: null
     }
@@ -52,14 +52,14 @@ router.delete('/:id', async function(req, res) {
   if (req.query.id){
     const game = await Game.delete({ id: req.query.id});
     const response = {
-        code: 200, 
+      status: 200, 
         message: 'Games succesfully deleted.',
         data: game
     }
     res.status(200).send(response)
   } else {
     const response = {
-        code: 500, 
+      status: 500, 
         message: 'A "name" field required in update name field in user table',
         data: null
     }
