@@ -40,12 +40,12 @@ console.log('newScore', newScore)
             plain: true,
         });
 
-        console.log('updatedGame', updatedGame)
+        // console.log('updatedGame', updatedGame)
         // If frame exists, update frame score. If not, create new frame with beginning score.
 
         const currentFrames = await Frame.findAll({
             where: {
-                id: gameId,
+                gameId,
                 userId
             },
             order: sequelize.literal('"Frame"."frameNumber" DESC')
@@ -53,13 +53,13 @@ console.log('newScore', newScore)
 
         // console.log('currentFrame', currentFrame)
         let response;
-
+console.log('currentFrames', currentFrames.length)
         if (!currentFrames.length){
             let newFrame = {
                 frameNumber: 1,
                 attempts: 1,
                 allowedAttempts: 2,
-                newScore,
+                score: newScore,
                 userId,
                 gameId
             }
@@ -75,47 +75,49 @@ console.log('newScore', newScore)
                 status: 200, 
                 message: 'Score applied to frame!',
                 data: {
-                    frame: firstFrame,
-                    game: updatedGame
+                    frame: firstFrame[1],
+                    game: updatedGame[1]
                 }
             }
         } else {
             // Grab lastest frame 
+            
             const latestFrame = currentFrames[0]
-            // console.log('latestFrame', latestFrame)
+            console.log('latestFrame', latestFrame)
             
             // a strike
             const previousScore = latestFrame.dataValues.score
-            const currentAttemptNumber = latestFrame.dataValues.attempts
+            const currentAttempts = latestFrame.dataValues.attempts
             const currentAllowedAttempts = latestFrame.dataValues.allowedAttempts
-            
-            let newScore = 0;
+            console.log('previousScore', previousScore)
+            console.log('currentAttempts', currentAttempts)
+            console.log('currentAllowedAttempts', currentAllowedAttempts)
+
             let newAttempts = null;
-            let newAllowedAttempts = null;
+            let newAllowedAttempts = currentAllowedAttempts;
 
-            if ((newScore === 10 && allowedAttempts === 2) || (previousScore + newScore === 10 && currentAttemptNumber === 1)){
-                newAllowedAttempts = currentAttemptNumber + 1
-            } else {
-                newAttempts = currentAllowedAttempts + 1
-            }
-
-            if (currentAttemptNumber + 1 === 4){
+            if ((newScore === 10 && currentAttempts === 1) || (previousScore + newScore === 10 && currentAttempts + 1 === 2)){
+                newAllowedAttempts++
+            } 
+console.log('here')
+            if (currentAttempts + 1 === 4){
+                console.log('creating new frame')
                 // check for attempt 3 case
                 // create new frame, so next time player throws, it will update next frame
-                    await Frame.create({
-                        frameNumber: latestFrame.dataValues.frameNumber++,
-                        userId,
-                        gameId
+                await Frame.create({
+                    frameNumber: latestFrame.dataValues.frameNumber++,
+                    userId,
+                    gameId
                 });
             }
             
             // always increase attempt number
-            newAttempts = lastAttemptNumber + 1
-
+            newAttempts = currentAttempts + 1
+console.log('before')
             const updatedFrame = await Frame.update({
-                score: newScore,
+                score: newScore + previousScore,
                 attempts: newAttempts, 
-                allowedAttempts: newAllowedAttempts
+                allowedAttempts: newAllowedAttempts 
             }, {
                 where: {
                     id: latestFrame.dataValues.id,
@@ -123,13 +125,13 @@ console.log('newScore', newScore)
                 returning: true,
                 plain: true
             });
-
+console.log('updatedFrame')
             response = {
                 status: 200, 
                 message: 'Score applied to frame!',
                 data: {
-                    frame: updatedFrame,
-                    game: updatedGame
+                    frame: updatedFrame[1],
+                    game: updatedGame[1]
                 }
             }
         }
