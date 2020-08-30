@@ -1,38 +1,53 @@
-# bowling_coding_challenge
+ # Bowling Coding Challenge
 
-# To setup:
+## Installation
+```
+ npm install
+ ```
+ Create postgres database named 'bowling'.
+ Create postgres datbase named 'bowling_test'.
+ And run migrations with the following commands.
+ ```
+ run migrate-dev
+ run migrate-test
+```
 
-# npm install
-# create postgres database named 'bowling'
-# create psotgres datbase named 'bowling_test'
-# run migrate-dev
-# run migrate-test
+## Testing:
+```
+ npm run test
+ ```
 
-# To run tests:
-# npm run test
+## Usage:
+ Create a user by making a post request to the /user route with the following json in the request body.
+ 
+```json
+  {
+   "userId": your_user_id,
+  }
+```
 
-# To play:
-# Create a user by making a post request to the /user route with the following json in the request body.
-#  {
-#   "userId": your_user_id,
-#  }
+ Keep track of the user id returned.
 
-# Keep track of the user id returned.
+ Create a new game by making a post request to the /games route with the follwing json in the request body.
+ ```json
+  {
+   "userId": your_user_id,
+   "gameId": your_game_id,
+  }
+```
+ Keep track of the game id returned.
 
-# Create a new game by making a post request to the /games route with the follwing json in the request body.
-#  {
-#   "userId": your_user_id,
-#   "gameId": your_game_id,
-#  }
+ To throw a bowling ball in your game, make a post request to /throw with the following sample request body: 
+ 
+```json
+  {
+   "userId": your_user_id,
+   "gameId": your_game_id,
+   "score": integer_between_one_and_ten
+  }
+```
 
-# Keep track of the game id returned.
-
-# To throw a bowling ball in your game, make a post request to /throw with the following sample request body: 
-
-#  {
-#   "userId": your_user_id,
-#   "gameId": your_game_id,
-#   "score": integer_between_one_and_ten
-#  }
-
-# The body of the response will contain the results of your throw, contained in the frame object and the game object.
+ The body of the response will contain the results of your throw, contained in the frame object and the game object.
+ 
+ ## License
+[MIT](https://choosealicense.com/licenses/mit/)
