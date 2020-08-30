@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 
-const db = process.env.NODE_ENV === "test" ? "bowling-test" : "bowling";
+const db = process.env.NODE_ENV === "test" ? "bowling_test" : "bowling";
 
 const connection = {
     database: db,
@@ -23,7 +23,6 @@ database = new Sequelize(
         idle: 10000,
     },
     dialect: 'postgres',
-    //storage: path.join(process.cwd(), 'db', 'database.postgres'),
     },
 );
 

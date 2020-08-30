@@ -632,10 +632,8 @@ describe("/throw", () => {
             userId: 1, 
             score: 10
         });
-        console.log('esp', response.body)
         await expect(response.statusCode).toEqual(500)
         await expect(response.body.message).toEqual("You have already played the final frame for this game! Create a new game to play again.")
-
         done()
     });
 });

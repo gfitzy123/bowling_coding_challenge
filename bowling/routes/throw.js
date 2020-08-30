@@ -2,7 +2,6 @@ var express = require('express');
 var router = express.Router();
 const Game = require('../api/models/Game');
 const Frame = require('../api/models/Frame');
-const User = require('../api/models/User');
 const sequelize = require('sequelize');
 const utils = require('../utils/utils');
 
@@ -11,7 +10,7 @@ router.post('/', async function(req, res, next) {
     res.setHeader('Content-Type', 'application/json');
     let newScore = req.body.score;
 
-    // Catching edge cases here. Starting with, numbers completely out of range.
+    // Catching edge cases here. Starting with numbers completely out of range.
 
     if (newScore < 0 || newScore > 10 ){
         res.status(500).send({
@@ -40,16 +39,10 @@ router.post('/', async function(req, res, next) {
     }
 
     try {
-        // Pick a random number between 0 and 10.
         const gameId = req.body.gameId;
         const userId = req.body.userId;
 
-        // if no score available, generate random number
-        if (!newScore){
-            newScore = Math.floor(Math.random() * 10) + 1;
-        }
-
-        // Update running score for user's game.
+        // Grab the current game.
         const currentGame = await Game.findOne({
             where: {
                 id: gameId,
@@ -57,8 +50,7 @@ router.post('/', async function(req, res, next) {
             }
         })
 
-        // case where final frame has been played by player
-        console.log('currentGame', currentGame)
+        // Catch the case where final frame has been already been played by player
         if (currentGame.dataValues.completed){
             const response = {
                 status: 500,
@@ -68,7 +60,8 @@ router.post('/', async function(req, res, next) {
             return
         }
 
-        // If frame exists, update frame score. If not, create new frame with beginning score.
+        // Grab all the frames for the given user and game.
+
         const currentFrames = await Frame.findAll({
             where: {
                 gameId,
@@ -80,6 +73,9 @@ router.post('/', async function(req, res, next) {
         const latestFrame = currentFrames[0]
 
         let response;
+
+        // If no frames exist, create a new frame and update the score.
+        // If frames do exist, then perform some additional scoring logic.
 
         if (!currentFrames.length){
             const updatedGame = await Game.update({
@@ -136,17 +132,7 @@ router.post('/', async function(req, res, next) {
             // increase attempt number
             newAttempts = currentAttempts + 1
             
-            if (newAttempts === newAllowedAttempts){
-                // check for attempt 3 case
-                // create new frame, so next time player throws, it will update next frame
-                await Frame.create({
-                    frameNumber: latestFrame.dataValues.frameNumber + 1,
-                    userId,
-                    gameId
-                });
-            } 
-                
-            // update frame with new score and attempts
+            // Upate the current frame with new score and attempts
 
             const updatedFrame = await Frame.update({
                 score: newScore + previousScore,
@@ -160,6 +146,8 @@ router.post('/', async function(req, res, next) {
                 plain: true
             })
 
+            // Perform a check if this is a completed game, and update the game as necessary.
+            
             const isGameComplete = currentFrames.length === 10 && newAttempts === newAllowedAttempts;
 
             const updatedGame = await Game.update({
@@ -174,6 +162,15 @@ router.post('/', async function(req, res, next) {
                 plain: true,
             });
 
+            // If this is the players final attempt, create the next frame.
+            if (newAttempts === newAllowedAttempts){
+                await Frame.create({
+                    frameNumber: latestFrame.dataValues.frameNumber + 1,
+                    userId,
+                    gameId
+                });
+            }       
+
             response = {
                 status: 200, 
                 message: 'Score applied to frame!',
@@ -187,7 +184,6 @@ router.post('/', async function(req, res, next) {
         res.status(200).send(response)
 
     } catch(e) {
-        console.log('e', e)
         const response = {
             status: 500,
             message: JSON.stringify(e)
