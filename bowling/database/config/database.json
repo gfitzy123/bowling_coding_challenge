@@ -1,0 +1,19 @@
+{
+    "dev": {
+        "driver": "pg",
+        "user": "postgres",
+        "password": "postgres",
+        "host": "localhost",
+        "database": "bowling",
+        "port": "5432"
+    },
+    "test": {
+        "driver": "pg",
+        "user": "postgres",
+        "password": "postgres",
+        "host": "localhost",
+        "database": "bowling_test",
+        "port": "5432"
+    },
+    "sql-file" : true
+  }
