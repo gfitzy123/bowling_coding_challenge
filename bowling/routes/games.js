@@ -33,7 +33,7 @@ router.post('/', async function(req, res) {
     });
     const response = {
       status: 200, 
-        message: 'Game created!',
+        message: 'Game created! Use the returned game id and your user id to hit the /throw route to start playing.',
         data: game
     }
     res.status(200).send(response)

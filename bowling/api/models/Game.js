@@ -11,6 +11,9 @@ const Game = sequelize.define('Game', {
   runningScore: {
     type: Sequelize.INTEGER,
   },
+  completed: {
+    type: Sequelize.BOOLEAN,
+  },
   createdAt: {
     type: Sequelize.DATE,
   },
