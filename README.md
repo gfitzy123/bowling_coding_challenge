@@ -4,10 +4,10 @@
 ```
  npm install
  ```
- You'll need postgres installed.
- Create a postgres database named 'bowling'.
- Create a postgres database named 'bowling_test'.
- And run migrations with the following commands.
+ You'll need postgres installed.<br /> 
+ Create a postgres database named 'bowling'.<br /> 
+ Create a postgres database named 'bowling_test'.<br /> 
+ And run migrations with the following commands.<br /> 
  ```
  run migrate-dev
  run migrate-test
