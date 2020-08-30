@@ -28,7 +28,7 @@
 
  Keep track of the user id returned.
 
- Create a new game by making a post request to the /games route with the follwing json in the request body.
+ Create a new game by making a post request to the /games route with the following json in the request body.
  ```json
   {
    "userId": "yourUserId",
