@@ -22,7 +22,7 @@
  
 ```json
   {
-   "userId": your_user_id,
+   "name": "yourName",
   }
 ```
 
@@ -31,8 +31,7 @@
  Create a new game by making a post request to the /games route with the follwing json in the request body.
  ```json
   {
-   "userId": your_user_id,
-   "gameId": your_game_id,
+   "userId": "yourUserId",
   }
 ```
  Keep track of the game id returned.
@@ -41,9 +40,9 @@
  
 ```json
   {
-   "userId": your_user_id,
-   "gameId": your_game_id,
-   "score": integer_between_one_and_ten
+   "userId": "yourUserId",
+   "gameId": "yourGameId",
+   "score": 10
   }
 ```
 
