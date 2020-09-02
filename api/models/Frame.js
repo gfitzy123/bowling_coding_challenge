@@ -6,10 +6,10 @@ const tableName = "frames";
 const Frame = sequelize.define(
   "Frame",
   {
-    gameId: {
+    game_id: {
       type: Sequelize.INTEGER,
     },
-    frameNumber: {
+    frame_number: {
       type: Sequelize.INTEGER,
     },
     createdAt: {

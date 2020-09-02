@@ -20,8 +20,7 @@ const isValidInput = (input) => {
 };
 
 const getSum = (total, score) => {
-  console.log("score", score);
-  return total + Math.round(score.dataValues.score);
+  return total + Math.round(score.score_sum);
 };
 
 module.exports.getSum = getSum;

@@ -6,7 +6,7 @@ const tableName = "scores";
 const Score = sequelize.define(
   "Score",
   {
-    userId: {
+    user_id: {
       type: Sequelize.INTEGER,
       unique: true,
     },
@@ -16,13 +16,13 @@ const Score = sequelize.define(
     attempt: {
       type: Sequelize.INTEGER,
     },
-    frameId: {
+    frame_id: {
       type: Sequelize.INTEGER,
     },
-    gameId: {
+    game_id: {
       type: Sequelize.INTEGER,
     },
-    userId: {
+    user_id: {
       type: Sequelize.INTEGER,
     },
     createdAt: {

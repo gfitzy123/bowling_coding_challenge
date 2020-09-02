@@ -1,6 +1,7 @@
 var express = require("express");
 var router = express.Router();
 const Game = require("../api/models/Game");
+const Frame = require("../api/models/Frame");
 
 /* GET game */
 router.get("/:id", async function (req, res) {
@@ -27,6 +28,13 @@ router.get("/", async function (res) {
 /* POST to create game. */
 router.post("/", async function (req, res) {
   let game = await Game.create({});
+  const frames = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  frames.map((number) => {
+    Frame.create({
+      frameNumber: number,
+      gameId: game.dataValues.id,
+    });
+  });
   const response = {
     status: 200,
     message:
