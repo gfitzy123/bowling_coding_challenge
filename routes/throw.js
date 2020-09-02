@@ -1,11 +1,9 @@
 var express = require("express");
 var router = express.Router();
-const Game = require("../api/models/Game");
 const Frame = require("../api/models/Frame");
 const database = require("../database/database");
 const utils = require("../utils/utils");
 const Score = require("../api/models/Score");
-const reduce = require("lodash/reduce");
 
 /* POST to throw a bowling ball in a game. */
 router.post("/", async function (req, res, next) {
@@ -27,7 +25,7 @@ router.post("/", async function (req, res, next) {
     let response;
     console.log("userId", userId);
     const frames = await database.query(
-      `select f.frame_number, sum(s.score) as score_sum, s.user_id, f.id from frames as f inner join scores as s ON s.frame_id = f.id where f.game_id=${gameId} and s.user_id=${userId} group by (f.id, s.user_id, f.frame_number) order by f.frame_number desc`
+      `select f.frame_number, sum(s.score) as score_sum, s.user_id, f.game_id, f.id from frames as f inner join scores as s ON s.frame_id = f.id where f.game_id=${gameId} and s.user_id=${userId} group by (f.id, s.user_id, f.frame_number, f.game_id) order by f.frame_number desc`
     );
     console.log("frames", frames);
 
@@ -43,7 +41,6 @@ router.post("/", async function (req, res, next) {
       }
     });
 
-    console.log("latestFrameWithScore", latestFrameWithScore);
     if (!latestFrameWithScore) {
       // user has no more attempts and has completed frame
       // use next frame to score
@@ -53,13 +50,12 @@ router.post("/", async function (req, res, next) {
           frame_number: 1,
         },
       });
-      console.log("firstFrame", firstFrame);
       await Score.create({
         score: newScore,
         attempt: 1,
         user_id: userId,
         game_id: gameId,
-        frame_id: firstFrame.id,
+        frame_id: firstFrame.dataValues.id,
       });
 
       response = {
@@ -94,7 +90,7 @@ router.post("/", async function (req, res, next) {
     const attemptCountResult = await database.query(
       `SELECT COUNT(id) FROM scores where frame_id=${frameId} GROUP BY frame_id`
     );
-    const runningTotal = frames.reduce(utils.getSum, 0);
+    const runningTotal = frames[0].reduce(utils.getSum, 0);
     const attemptCount = parseInt(attemptCountResult[0][0].count);
     console.log("at", typeof attemptCount);
     console.log("attempts", attemptCount);
@@ -124,6 +120,7 @@ router.post("/", async function (req, res, next) {
       };
     }
     console.log("totalScore + newScore", totalScore + newScore);
+
     if (attemptCount === 2) {
       // find out if user will get one more attempt
       if (totalScore + newScore >= 10) {
@@ -136,6 +133,7 @@ router.post("/", async function (req, res, next) {
           game_id: gameId,
           frame_id: frameId,
         });
+
         response = {
           status: 200,
           message: "Score applied to frame!",
