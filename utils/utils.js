@@ -19,5 +19,11 @@ const isValidInput = (input) => {
   } else return true;
 };
 
+const getSum = (total, score) => {
+  console.log("score", score);
+  return total + Math.round(score.dataValues.score);
+};
+
+module.exports.getSum = getSum;
 module.exports.isValidInput = isValidInput;
 module.exports.isNormalInteger = isNormalInteger;

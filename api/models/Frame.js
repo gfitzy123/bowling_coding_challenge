@@ -6,14 +6,7 @@ const tableName = "frames";
 const Frame = sequelize.define(
   "Frame",
   {
-    userId: {
-      type: Sequelize.INTEGER,
-      unique: true,
-    },
     gameId: {
-      type: Sequelize.INTEGER,
-    },
-    allowedAttempts: {
       type: Sequelize.INTEGER,
     },
     frameNumber: {

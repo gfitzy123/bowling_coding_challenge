@@ -5,6 +5,7 @@ const Frame = require("../api/models/Frame");
 const sequelize = require("sequelize");
 const utils = require("../utils/utils");
 const Score = require("../api/models/Score");
+const reduce = require("lodash/reduce");
 
 /* POST to throw a bowling ball in a game. */
 router.post("/", async function (req, res, next) {
@@ -29,11 +30,9 @@ router.post("/", async function (req, res, next) {
     const currentFrames = await Frame.findAll({
       where: {
         gameId,
-        userId,
       },
       order: sequelize.literal('"Frame"."frameNumber" DESC'),
     });
-    console.log("currentFrames", currentFrames);
 
     let response;
 
@@ -44,19 +43,15 @@ router.post("/", async function (req, res, next) {
       console.log("First frame");
       let newFrame = {
         frameNumber: 1,
-        allowedAttempts: 2,
-        userId,
         gameId,
       };
 
       if (newScore === 10) {
         newFrame.allowedAttempts = 3;
       }
-      console.log(newFrame);
-      const firstFrame = await Frame.create(newFrame).catch((e) =>
-        console.log("e", e)
-      );
-      console.log("firstFrame", firstFrame.dataValues);
+
+      const firstFrame = await Frame.create(newFrame);
+
       await Score.create({
         score: newScore,
         attempt: 1,
@@ -103,83 +98,98 @@ router.post("/", async function (req, res, next) {
       }
 
       const latestFrame = currentFrames[0];
-      const frameId = latestFrame.id;
-      const currentAttempts = latestFrame.dataValues.attempts;
-      const currentAllowedAttempts = latestFrame.dataValues.allowedAttempts;
+      // case when other player creates frame, and the other user did not finish his
+      // get scores for last two frames
+      // see if they all match up
 
-      const previousScore = await Score.findAll({
+      const frameId = latestFrame.dataValues.id;
+      console.log(frameId, gameId, userId);
+      const previousScores = await Score.findAll({
         where: {
           gameId,
           userId,
           frameId,
         },
-        order: sequelize.literal('"Score"."attempt" DESC'),
-      })[0];
-
-      console.log("previosuScore", previousScore);
-
-      let newAttempts = null;
-      let newAllowedAttempts = currentAllowedAttempts;
-
-      // if a strike, increase allowed attempts by 1
-      if (newScore === 10 && currentAttempts === 0) {
-        newAllowedAttempts = 3;
-      }
-
-      // if a spare, increase allowed attempts by 1
-      if (previousScore + newScore === 10 && currentAttempts === 1) {
-        newAllowedAttempts = newAllowedAttempts + 1;
-      }
-
-      // increase attempt number
-      newAttempts = currentAttempts + 1;
-
-      // create new score
-
-      const newScore = await Score.create({
-        score: newScore + previousScore,
-        attempt: newAttempts,
-        userId,
-        gameId,
-        frameId,
+        order: sequelize.literal('"Score"."attempt" ASC'),
       });
 
-      // Upate the current frame with new score and attempts
+      console.log("previosuScore", previousScores.length);
 
-      const updatedFrame = await Frame.update(
-        {
-          attempts: newAttempts,
-          allowedAttempts: newAllowedAttempts,
-        },
-        {
-          where: {
-            id: latestFrame.dataValues.id,
-          },
-          returning: true,
-          plain: true,
+      // if first frame, create ten
+      // score first frame
+
+      // next score
+      // check if frames exist
+      // retrieve
+
+      // Using previous scores, check if the user is able to submit anyother one
+      let isUserAbleToAttemptAgain = false;
+
+      if (previousScores.length === 2) {
+        // check if scores suggest an additional attempt is allowed
+        if (previousScores[0] === 10) {
+          isUserAbleToAttemptAgain = true;
+        } else if (previousScores[0] + previousScores[1] === 10) {
+          isUserAbleToAttemptAgain = true;
         }
-      );
-
-      // If this is the players final attempt, create the next frame.
-      if (newAttempts === newAllowedAttempts) {
-        await Frame.create({
-          frameNumber: latestFrame.dataValues.frameNumber + 1,
-          userId,
-          gameId,
-        });
+      } else if (previousScores.length === 1) {
+        isUserAbleToAttemptAgain = true;
       }
 
-      response = {
-        status: 200,
-        message: "Score applied to frame!",
-        data: {
-          frame: updatedFrame[1],
-          game: updatedGame[1],
-        },
-      };
-    }
+      const runningTotal = previousScores.reduce(utils.getSum, 0);
 
-    res.status(200).send(response);
+      if (
+        isUserAbleToAttemptAgain &&
+        (previousScores.length === 1 || previousScores === 2)
+      ) {
+        await Score.create({
+          score: newScore,
+          attempt: previousScores.length + 1,
+          userId,
+          gameId,
+          frameId,
+        });
+        response = {
+          status: 200,
+          message: "Score applied to frame!",
+          data: {
+            frame: latestFrame,
+            game: {
+              gameId,
+              yourRunningTotal: runningTotal + newScore,
+            },
+          },
+        };
+        res.status(200).send(response);
+      } else if (isUserAbleToAttemptAgain && previousScores.length == 3) {
+        const newFrame = await Frame.create({
+          frameNumber: latestFrame.dataValues.frameNumber + 1,
+          gameId,
+        });
+
+        const newScore = await Score.create({
+          score: newScore,
+          attempt: 1,
+          userId,
+          gameId,
+          frameId: newFrame.dataValues.frameId,
+        });
+
+        response = {
+          status: 200,
+          message: "Score applied to frame!",
+          data: {
+            frame: newFrame,
+            game: {
+              gameId,
+              yourRunningTotal: runningTotal + newScore,
+            },
+          },
+        };
+
+        res.status(200).send(response);
+      }
+    }
   } catch (e) {
     console.log("catch e", e);
     const response = {
