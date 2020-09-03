@@ -542,7 +542,6 @@ describe("/api/throw", () => {
       userId: 1,
       score: 10,
     });
-
     await expect(response.statusCode).toEqual(500);
     await expect(response.body.message).toEqual(
       "You have already played the final frame for this game! Create a new game to play again."
