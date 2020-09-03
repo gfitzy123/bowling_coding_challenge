@@ -1,9 +1,9 @@
 var express = require("express");
 var router = express.Router();
-const Game = require("../api/models/Game");
 const Frame = require("../api/models/Frame");
-const sequelize = require("sequelize");
+const database = require("../database/database");
 const utils = require("../utils/utils");
+const Score = require("../api/models/Score");
 
 /* POST to throw a bowling ball in a game. */
 router.post("/", async function (req, res, next) {
@@ -11,25 +11,7 @@ router.post("/", async function (req, res, next) {
   let newScore = req.body.score;
 
   // Catching edge cases here. Starting with numbers completely out of range.
-  if (newScore < 0 || newScore > 10) {
-    res.status(500).send({
-      status: 500,
-      message: "You submitted a score that is not an integer between 0 and 10.",
-    });
-    return;
-  }
-
-  // When input is a string that is not an integer
-  if (typeof newScore === "string" && !utils.isNormalInteger(newScore)) {
-    res.status(500).send({
-      status: 500,
-      message: "You submitted a score that is not an integer between 0 and 10.",
-    });
-    return;
-  }
-
-  // And finally, if a number is not an integer
-  if (!Number.isInteger(newScore)) {
+  if (!utils.isValidInput(newScore)) {
     res.status(500).send({
       status: 500,
       message: "You submitted a score that is not an integer between 0 and 10.",
@@ -38,154 +20,193 @@ router.post("/", async function (req, res, next) {
   }
 
   try {
+    // when user throws
+    // find last frame user has scored on
+    // return all scores for all frames, assorted by frame number
+    // if no scores, score begins at first frame
+
+    // if there are scores
+    // check if user has any allowable attempts left
+    // if he does, score current frame
+    // if not, score next frame
+
     const gameId = req.body.gameId;
     const userId = req.body.userId;
+    let response;
+    const frames = await database.query(
+      `select f.frame_number, sum(s.score) as score_sum, s.user_id, f.game_id, f.id from frames as f inner join scores as s ON s.frame_id = f.id where f.game_id=${gameId} and s.user_id=${userId} group by (f.id, s.user_id, f.frame_number, f.game_id) order by f.frame_number desc`
+    );
 
-    // Grab the current game.
-    const currentGame = await Game.findOne({
-      where: {
-        id: gameId,
-        userId,
-      },
-    });
+    // check if last game
+    const isLastGame = await utils.checkIfLastGame(gameId, userId);
 
-    // Catch the case where final frame has been already been played by player
-    if (currentGame.dataValues.completed) {
-      const response = {
-        status: 500,
+    if (isLastGame) {
+      res.status(500).send({
         message:
           "You have already played the final frame for this game! Create a new game to play again.",
-      };
-      res.status(500).send(response);
+      });
       return;
     }
 
-    // Grab all the frames for the given user and game.
-    const currentFrames = await Frame.findAll({
-      where: {
-        gameId,
-        userId,
-      },
-      order: sequelize.literal('"Frame"."frameNumber" DESC'),
+    const latestFrameWithScore = frames[0].find((frame, i) => {
+      if (parseInt(frame.score_sum) > 0) {
+        currentFrameIndex = i;
+        return frame;
+      } else if (i === 9) {
+        return frame;
+      }
     });
 
-    const latestFrame = currentFrames[0];
-
-    let response;
-
-    // If no frames exist, create a new frame and update the score.
-    // If frames do exist, then perform some additional scoring logic.
-
-    if (!currentFrames.length) {
-      const updatedGame = await Game.update(
-        {
-          runningScore: currentGame.runningScore + newScore,
+    if (!latestFrameWithScore) {
+      // user has no more attempts and has completed frame
+      // use next frame to score
+      const firstFrame = await Frame.findOne({
+        where: {
+          game_id: gameId,
+          frame_number: 1,
         },
-        {
-          where: {
-            id: gameId,
-            userId,
-          },
-          returning: true,
-          plain: true,
-        }
-      );
-
-      let newFrame = {
-        frameNumber: 1,
-        attempts: 1,
-        allowedAttempts: 2,
+      });
+      await Score.create({
         score: newScore,
-        userId,
-        gameId,
-      };
-
-      if (newScore === 10) {
-        newFrame.allowedAttempts = 3;
-      }
-
-      const firstFrame = await Frame.create(newFrame);
+        attempt: 1,
+        user_id: userId,
+        game_id: gameId,
+        frame_id: firstFrame.dataValues.id,
+      });
 
       response = {
         status: 200,
         message: "Score applied to frame!",
         data: {
           frame: firstFrame,
-          game: updatedGame[1],
+          game: {
+            game_id: gameId,
+            yourRunningTotal: newScore,
+          },
         },
       };
-    } else {
-      const currentAttempts = latestFrame.dataValues.attempts;
-      const currentAllowedAttempts = latestFrame.dataValues.allowedAttempts;
-      const previousScore = latestFrame.dataValues.score;
-      let newAttempts = null;
-      let newAllowedAttempts = currentAllowedAttempts;
+      res.status(200).send(response);
+      return;
+    }
 
-      // if a strike, increase allowed attempts by 1
-      if (newScore === 10 && currentAttempts === 0) {
-        newAllowedAttempts = 3;
-      }
+    const totalScore = parseInt(latestFrameWithScore.score_sum);
+    const frameId = latestFrameWithScore.id;
+    const attemptCountResult = await database.query(
+      `SELECT COUNT(id) FROM scores where frame_id=${frameId} GROUP BY frame_id`
+    );
+    const runningTotal = frames[0].reduce(utils.getSum, 0);
+    const attemptCount = parseInt(attemptCountResult[0][0].count);
 
-      // if a spare, increase allowed attempts by 1
-      if (previousScore + newScore === 10 && currentAttempts === 1) {
-        newAllowedAttempts = newAllowedAttempts + 1;
-      }
-
-      // increase attempt number
-      newAttempts = currentAttempts + 1;
-
-      // Upate the current frame with new score and attempts
-
-      const updatedFrame = await Frame.update(
-        {
-          score: newScore + previousScore,
-          attempts: newAttempts,
-          allowedAttempts: newAllowedAttempts,
-        },
-        {
-          where: {
-            id: latestFrame.dataValues.id,
-          },
-          returning: true,
-          plain: true,
-        }
-      );
-
-      // Perform a check if this is a completed game, and update the game as necessary.
-
-      const isGameComplete =
-        currentFrames.length === 10 && newAttempts === newAllowedAttempts;
-
-      const updatedGame = await Game.update(
-        {
-          runningScore: currentGame.runningScore + newScore,
-          completed: isGameComplete,
-        },
-        {
-          where: {
-            id: gameId,
-            userId,
-          },
-          returning: true,
-          plain: true,
-        }
-      );
-
-      // If this is the players final attempt, create the next frame.
-      if (newAttempts === newAllowedAttempts) {
-        await Frame.create({
-          frameNumber: latestFrame.dataValues.frameNumber + 1,
-          userId,
-          gameId,
-        });
-      }
+    if (attemptCount === 1) {
+      // user is on second attempt
+      // use next frame to score
+      await Score.create({
+        score: newScore,
+        attempt: 2,
+        user_id: userId,
+        game_id: gameId,
+        frame_id: latestFrameWithScore.id,
+      });
 
       response = {
         status: 200,
         message: "Score applied to frame!",
         data: {
-          frame: updatedFrame[1],
-          game: updatedGame[1],
+          frame: { ...latestFrameWithScore, score: newScore },
+          game: {
+            game_id: gameId,
+            yourRunningTotal: runningTotal + newScore,
+          },
+        },
+      };
+    }
+    // users third attempt
+    if (attemptCount === 2) {
+      // find out if user will get one more attempt
+      if (totalScore >= 10) {
+        // user has one more attempt
+        // use current frame to score
+        await Score.create({
+          score: newScore,
+          attempt: 3,
+          user_id: userId,
+          game_id: gameId,
+          frame_id: frameId,
+        });
+
+        response = {
+          status: 200,
+          message: "Score applied to frame!",
+          data: {
+            frame: latestFrameWithScore,
+            game: {
+              game_id: gameId,
+              yourRunningTotal: runningTotal + newScore,
+            },
+          },
+        };
+        res.status(200).send(response);
+        return;
+      } else if (totalScore < 10) {
+        // user has no more attempts and has completed frame
+        // use next frame to score
+        const nextFrame = await Frame.findOne({
+          where: {
+            frame_number: parseInt(latestFrameWithScore.frame_number) + 1,
+            game_id: gameId,
+          },
+          raw: true,
+        });
+        await Score.create({
+          score: newScore,
+          attempt: 1,
+          user_id: userId,
+          game_id: gameId,
+          frame_id: nextFrame.id,
+        });
+        response = {
+          status: 200,
+          message: "Score applied to frame!",
+          data: {
+            frame: { ...nextFrame, score: totalScore + newScore },
+            game: {
+              game_id: gameId,
+              yourRunningTotal: runningTotal + newScore,
+            },
+          },
+        };
+        res.status(200).send(response);
+        return;
+      }
+    }
+
+    if (attemptCount === 3) {
+      // user has completed last frame
+      // use next frame to score
+      const nextFrame = await Frame.findOne({
+        where: {
+          frame_number: parseInt(latestFrameWithScore.frame_number) + 1,
+          game_id: gameId,
+        },
+      });
+
+      await Score.create({
+        score: newScore,
+        attempt: 1,
+        user_id: userId,
+        game_id: gameId,
+        frame_id: nextFrame.dataValues.id,
+      });
+
+      response = {
+        status: 200,
+        message: "Score applied to frame!",
+        data: {
+          frame: { ...nextFrame, score: newScore },
+          game: {
+            game_id: gameId,
+            yourRunningTotal: runningTotal + newScore,
+          },
         },
       };
     }

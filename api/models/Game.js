@@ -6,16 +6,6 @@ const tableName = "games";
 const Game = sequelize.define(
   "Game",
   {
-    userId: {
-      type: Sequelize.INTEGER,
-      unique: true,
-    },
-    runningScore: {
-      type: Sequelize.INTEGER,
-    },
-    completed: {
-      type: Sequelize.BOOLEAN,
-    },
     createdAt: {
       type: Sequelize.DATE,
     },

@@ -1,15 +1,28 @@
 const Sequelize = require("sequelize");
 const sequelize = require("../../database/database.js");
 
-const tableName = "frames";
+const tableName = "scores";
 
-const Frame = sequelize.define(
-  "Frame",
+const Score = sequelize.define(
+  "Score",
   {
+    user_id: {
+      type: Sequelize.INTEGER,
+      unique: true,
+    },
+    score: {
+      type: Sequelize.INTEGER,
+    },
+    attempt: {
+      type: Sequelize.INTEGER,
+    },
+    frame_id: {
+      type: Sequelize.INTEGER,
+    },
     game_id: {
       type: Sequelize.INTEGER,
     },
-    frame_number: {
+    user_id: {
       type: Sequelize.INTEGER,
     },
     createdAt: {
@@ -23,9 +36,9 @@ const Frame = sequelize.define(
 );
 
 // eslint-disable-next-line
-Frame.prototype.toJSON = function () {
+Score.prototype.toJSON = function () {
   const values = Object.assign({}, this.get());
   return values;
 };
 
-module.exports = Frame;
+module.exports = Score;

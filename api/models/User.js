@@ -1,21 +1,17 @@
-const Sequelize = require("sequelize");
-const sequelize = require("../../database/database.js");
+const Sequelize = require('sequelize');
+const sequelize = require('../../database/database.js');
 
-const tableName = "users";
+const tableName = 'users';
 
-const User = sequelize.define(
-  "User",
-  {
-    name: {
-      type: Sequelize.STRING,
-      unique: true,
-    },
-    createdAt: {
-      type: Sequelize.DATE,
-    },
+const User = sequelize.define('User', {
+  name: {
+    type: Sequelize.STRING,
+    unique: true,
   },
-  { tableName }
-);
+  createdAt: {
+    type: Sequelize.DATE,
+  },
+}, { tableName });
 
 // eslint-disable-next-line
 User.prototype.toJSON = function () {

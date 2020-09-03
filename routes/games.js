@@ -1,6 +1,7 @@
 var express = require("express");
 var router = express.Router();
 const Game = require("../api/models/Game");
+const Frame = require("../api/models/Frame");
 
 /* GET game */
 router.get("/:id", async function (req, res) {
@@ -26,26 +27,21 @@ router.get("/", async function (res) {
 
 /* POST to create game. */
 router.post("/", async function (req, res) {
-  if (req.body.userId) {
-    let game = await Game.create({
-      userId: req.body.userId,
-      runningScore: 0,
+  let game = await Game.create({});
+  const frames = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  frames.map((number) => {
+    Frame.create({
+      frame_number: number,
+      game_id: game.dataValues.id,
     });
-    const response = {
-      status: 200,
-      message:
-        "Game created! Use the returned game id and your user id to hit the /throw route to start playing.",
-      data: game,
-    };
-    res.status(200).send(response);
-  } else {
-    const response = {
-      status: 500,
-      message: 'A "userId" field is required to create a game.',
-      data: null,
-    };
-    res.status(500).send(response);
-  }
+  });
+  const response = {
+    status: 200,
+    message:
+      "Game created! Use the returned game id and your user id to hit the /throw route to start playing.",
+    data: game,
+  };
+  res.status(200).send(response);
 });
 
 /* DELETE game. */

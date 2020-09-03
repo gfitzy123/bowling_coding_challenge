@@ -5,8 +5,8 @@
   "scripts": {
     "start": "nodemon ./bin/www",
     "test": "jest tests/test.js --runInBand --detectOpenHandles --forceExit",
-    "migrate-dev": "db-migrate up --config database/config/database.json -e test",
-    "migrate-test": "db-migrate up --config database/config/database.json -e dev"
+    "migrate-dev": "db-migrate up --config database/config/database.json -e dev",
+    "migrate-test": "db-migrate up --config database/config/database.json -e test"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
@@ -15,6 +15,7 @@
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
     "jade": "~1.11.0",
+    "lodash": "^4.17.20",
     "morgan": "~1.9.1",
     "nodemon": "^2.0.4",
     "pg": "^8.3.3",
