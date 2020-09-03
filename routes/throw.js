@@ -23,7 +23,7 @@ router.post("/", async function (req, res, next) {
     // when user throws
     // find last frame user has scored on
     // return all scores for all frames, assorted by frame number
-    // if no scores, score begins at one
+    // if no scores, score begins at first frame
 
     // if there are scores
     // check if user has any allowable attempts left

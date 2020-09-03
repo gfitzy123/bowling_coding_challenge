@@ -31,8 +31,8 @@ router.post("/", async function (req, res) {
   const frames = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   frames.map((number) => {
     Frame.create({
-      frameNumber: number,
-      gameId: game.dataValues.id,
+      frame_number: number,
+      game_id: game.dataValues.id,
     });
   });
   const response = {

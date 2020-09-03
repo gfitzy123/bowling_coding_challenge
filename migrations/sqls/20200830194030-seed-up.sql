@@ -14,7 +14,6 @@ CREATE TABLE "games" (
     "id" int4 NOT NULL DEFAULT nextval('games_id_seq'::regclass),
     "createdAt" timestamp,
     "updatedAt" timestamp,
-    CONSTRAINT "games_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id"),
     PRIMARY KEY ("id")
 );
 
@@ -22,13 +21,10 @@ CREATE SEQUENCE IF NOT EXISTS frames_id_seq;
 
 CREATE TABLE "frames" (
     "id" int4 NOT NULL DEFAULT nextval('frames_id_seq'::regclass),
-    "usr_id" int4 NOT NULL,
     "game_id" int4 NOT NULL,
     "frame_number" int4 NOT NULL,
     "createdAt" timestamp,
     "updatedAt" timestamp,
-    "allowedAttempts" int4 DEFAULT 2,
-    CONSTRAINT "frames_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id"),
     CONSTRAINT "frames_game_id_fkey" FOREIGN KEY ("game_id") REFERENCES "games"("id"),
     PRIMARY KEY ("id")
 );
@@ -44,8 +40,8 @@ CREATE TABLE "scores" (
     "attempt" int4,
     "createdAt" timestamp,
     "updatedAt" timestamp,
-    CONSTRAINT "scores_frameId_fkey" FOREIGN KEY ("frame_id") REFERENCES "public"."frames"("id"),
-    CONSTRAINT "scores_userId_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id"),
-    CONSTRAINT "scores_gameId_fkey" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id"),
+    CONSTRAINT "scores_frame_id_fkey" FOREIGN KEY ("frame_id") REFERENCES "frames"("id"),
+    CONSTRAINT "scores_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id"),
+    CONSTRAINT "scores_game_id_fkey" FOREIGN KEY ("game_id") REFERENCES "games"("id"),
     PRIMARY KEY ("id")
 );
