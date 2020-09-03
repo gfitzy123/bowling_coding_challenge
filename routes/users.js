@@ -45,7 +45,6 @@ router.put("/:id/", async function (req, res) {
 
 /* POST users listing. */
 router.post("/", async function (req, res) {
-  console.log("req", req.body);
   if (req.query.name || req.body.name) {
     const name = req.query.name || req.body.name;
     const user = await User.create({ name });

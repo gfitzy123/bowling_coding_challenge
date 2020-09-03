@@ -4,7 +4,7 @@ const request = require("supertest");
 const app = require("../app");
 
 describe("/api/throw", () => {
-  beforeEach(async (done) => {
+  beforeAll(async (done) => {
     await sequelize.query(
       `INSERT INTO "users" ("id", "name") VALUES (1, 'garrett')`
     );
@@ -39,15 +39,11 @@ describe("/api/throw", () => {
     await sequelize.query(
       `INSERT INTO "frames" ("id", "game_id", "frame_number") VALUES (50, 1, 10)`
     );
-
     done();
   });
 
   afterEach(async (done) => {
     await sequelize.query("DELETE FROM scores");
-    await sequelize.query("DELETE FROM frames");
-    await sequelize.query("DELETE FROM games");
-    await sequelize.query("DELETE FROM users");
     done();
   });
 
@@ -127,7 +123,7 @@ describe("/api/throw", () => {
           game_id: 1,
         },
         game: {
-          gameId: 1,
+          game_id: 1,
           yourRunningTotal: 10,
         },
       },
@@ -230,10 +226,9 @@ describe("/api/throw", () => {
         frame: {
           frame_number: 2,
           game_id: 1,
-          user_id: 1,
         },
         game: {
-          id: 1,
+          game_id: 1,
           yourRunningTotal: 14,
         },
       },
@@ -243,393 +238,315 @@ describe("/api/throw", () => {
     done();
   });
 
-  // test("A user should have the correct score after playing an entire game", async (done) => {
-  //     // Frame 1: 1 strike for score of 19
-  //     let response;
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 10
-  //     });
+  test("A user should have the correct score after playing an entire game", async (done) => {
+    // Frame 1: 1 strike for score of 19
+    let response;
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 10,
+    });
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 5
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 5,
+    });
 
-  //     response = await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 5
-  //     });
+    response = await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 5,
+    });
 
-  //     await expect(response.body.data.frame).toMatchObject({
-  //         "allowedAttempts": 3,
-  //         "attempts": 3,
-  //         "frameNumber": 1,
-  //         "gameId": 1,
-  //         "score": 20,
-  //         "userId": 1,
-  //         "createdAt": expect.any(String),
-  //         "updatedAt": expect.any(String),
-  //     });
+    await expect(response.body.data.frame).toMatchObject({
+      frame_number: 1,
+      game_id: 1,
+      user_id: 1,
+    });
 
-  //     await expect(response.body.data.game).toMatchObject({
-  //         "id": expect.any(Number),
-  //         "createdAt": null,
-  //         "updatedAt": expect.any(String),
-  //         "userId": 1,
-  //         "runningScore": 20,
-  //     });
+    await expect(response.body.data.game).toMatchObject({
+      game_id: 1,
+      yourRunningTotal: 20,
+    });
 
-  //     // Frame 2: spare with final score of 17, running score of 37
+    // Frame 2: spare with final score of 17, running score of 37
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 5
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 5,
+    });
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 5
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 5,
+    });
 
-  //     response = await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 7
-  //     });
+    response = await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 7,
+    });
 
-  //     await expect(response.status).toEqual(200)
-  //     await expect(response.body.data.frame).toMatchObject({
-  //         "allowedAttempts": 3,
-  //         "attempts": 3,
-  //         "frameNumber": 2,
-  //         "gameId": 1,
-  //         "score": 17,
-  //         "userId": 1,
-  //         "createdAt": expect.any(String),
-  //         "updatedAt": expect.any(String),
-  //     });
+    await expect(response.status).toEqual(200);
+    await expect(response.body.data.frame).toMatchObject({
+      frame_number: 2,
+      game_id: 1,
+    });
 
-  //     await expect(response.body.data.game).toMatchObject({
-  //         "id": expect.any(Number),
-  //         "createdAt": null,
-  //         "updatedAt": expect.any(String),
-  //         "userId": 1,
-  //         "runningScore": 37,
-  //     });
+    await expect(response.body.data.game).toMatchObject({
+      game_id: 1,
+      yourRunningTotal: 37,
+    });
 
-  //     // Frame 3: open frame with score of 9, running score of 46
+    // Frame 3: open frame with score of 9, running score of 46
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 7
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 7,
+    });
 
-  //     response = await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 2
-  //     });
+    response = await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 2,
+    });
 
-  //     await expect(response.body.data.frame).toMatchObject({
-  //         "allowedAttempts": 2,
-  //         "attempts": 2,
-  //         "frameNumber": 3,
-  //         "gameId": 1,
-  //         "score": 9,
-  //         "userId": 1,
-  //         "createdAt": expect.any(String),
-  //         "updatedAt": expect.any(String),
-  //     })
+    await expect(response.body.data.frame).toMatchObject({
+      frame_number: 3,
+      game_id: 1,
+      user_id: 1,
+    });
 
-  //     await expect(response.body.data.game).toMatchObject({
-  //         "id": expect.any(Number),
-  //         "createdAt": null,
-  //         "updatedAt": expect.any(String),
-  //         "userId": 1,
-  //         "runningScore": 46,
-  //     })
+    await expect(response.body.data.game).toMatchObject({
+      game_id: 1,
+      yourRunningTotal: 46,
+    });
 
-  //     // Frame 4: a spare then a strike, score of 20, running score of 66
+    // // Frame 4: a spare then a strike, score of 20, running score of 66
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 7
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 7,
+    });
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 3
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 3,
+    });
 
-  //     response = await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 10
-  //     });
+    response = await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 10,
+    });
 
-  //     await expect(response.body.data.frame).toMatchObject({
-  //         "allowedAttempts": 3,
-  //         "attempts": 3,
-  //         "frameNumber": 4,
-  //         "gameId": 1,
-  //         "score": 20,
-  //         "userId": 1,
-  //         "createdAt": expect.any(String),
-  //         "updatedAt": expect.any(String),
-  //     })
+    await expect(response.body.data.frame).toMatchObject({
+      frame_number: 4,
+      game_id: 1,
+      user_id: 1,
+    });
 
-  //     await expect(response.body.data.game).toMatchObject({
-  //         "id": expect.any(Number),
-  //         "createdAt": null,
-  //         "updatedAt": expect.any(String),
-  //         "userId": 1,
-  //         "runningScore": 66,
-  //     })
+    await expect(response.body.data.game).toMatchObject({
+      game_id: 1,
+      yourRunningTotal: 66,
+    });
 
-  //     // Frame 5: 3 strikes, score of 30, running score of 96
+    // Frame 5: 3 strikes, score of 30, running score of 96
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 10
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 10,
+    });
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 10
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 10,
+    });
 
-  //     response = await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 10
-  //     });
+    response = await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 10,
+    });
 
-  //     await expect(response.body.data.frame).toMatchObject({
-  //         "allowedAttempts": 3,
-  //         "attempts": 3,
-  //         "frameNumber": 5,
-  //         "gameId": 1,
-  //         "score": 30,
-  //         "userId": 1,
-  //         "createdAt": expect.any(String),
-  //         "updatedAt": expect.any(String),
-  //     })
+    await expect(response.body.data.frame).toMatchObject({
+      frame_number: 5,
+      game_id: 1,
+      user_id: 1,
+    });
 
-  //     await expect(response.body.data.game).toMatchObject({
-  //         "id": expect.any(Number),
-  //         "createdAt": null,
-  //         "updatedAt": expect.any(String),
-  //         "userId": 1,
-  //         "runningScore": 96,
-  //     })
+    await expect(response.body.data.game).toMatchObject({
+      game_id: 1,
+      yourRunningTotal: 96,
+    });
 
-  //     // Frame 6: 2 strikes and a 2, score of 22, running score of 118
+    // // Frame 6: 2 strikes and a 2, score of 22, running score of 118
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 10
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 10,
+    });
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 10
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 10,
+    });
 
-  //     response = await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 2
-  //     });
+    response = await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 2,
+    });
 
-  //     await expect(response.body.data.frame).toMatchObject({
-  //         "allowedAttempts": 3,
-  //         "attempts": 3,
-  //         "frameNumber": 6,
-  //         "gameId": 1,
-  //         "score": 22,
-  //         "userId": 1,
-  //         "createdAt": expect.any(String),
-  //         "updatedAt": expect.any(String),
-  //     })
+    await expect(response.body.data.frame).toMatchObject({
+      frame_number: 6,
+      game_id: 1,
+      user_id: 1,
+    });
 
-  //     await expect(response.body.data.game).toMatchObject({
-  //         "id": expect.any(Number),
-  //         "createdAt": null,
-  //         "updatedAt": expect.any(String),
-  //         "userId": 1,
-  //         "runningScore": 118,
-  //     })
+    await expect(response.body.data.game).toMatchObject({
+      game_id: 1,
+      yourRunningTotal: 118,
+    });
 
-  //     // Frame 7: 1 strike, 2, and 3, score of 15, running score of 133
+    // Frame 7: 1 strike, 2, and 3, score of 15, running score of 133
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 10
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 10,
+    });
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 2
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 2,
+    });
 
-  //     response = await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 3
-  //     });
+    response = await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 3,
+    });
 
-  //     await expect(response.body.data.frame).toMatchObject({
-  //         "allowedAttempts": 3,
-  //         "attempts": 3,
-  //         "frameNumber": 7,
-  //         "gameId": 1,
-  //         "score": 15,
-  //         "userId": 1,
-  //         "createdAt": expect.any(String),
-  //         "updatedAt": expect.any(String),
-  //     })
+    await expect(response.body.data.frame).toMatchObject({
+      frame_number: 7,
+      game_id: 1,
+      user_id: 1,
+    });
 
-  //     await expect(response.body.data.game).toMatchObject({
-  //         "id": expect.any(Number),
-  //         "createdAt": null,
-  //         "updatedAt": expect.any(String),
-  //         "userId": 1,
-  //         "runningScore": 133,
-  //     })
+    await expect(response.body.data.game).toMatchObject({
+      game_id: 1,
+      yourRunningTotal: 133,
+    });
 
-  //     // Frame 8: 2 and 3, score of 5, running score of 138
+    // Frame 8: 2 and 3, score of 5, running score of 138
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 2
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 2,
+    });
 
-  //     response = await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 3
-  //     });
+    response = await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 3,
+    });
 
-  //     await expect(response.body.data.frame).toMatchObject({
-  //         "allowedAttempts": 2,
-  //         "attempts": 2,
-  //         "frameNumber": 8,
-  //         "gameId": 1,
-  //         "score": 5,
-  //         "userId": 1,
-  //         "createdAt": expect.any(String),
-  //         "updatedAt": expect.any(String),
-  //     })
+    await expect(response.body.data.frame).toMatchObject({
+      frame_number: 8,
+      game_id: 1,
+      user_id: 1,
+    });
 
-  //     await expect(response.body.data.game).toMatchObject({
-  //         "id": expect.any(Number),
-  //         "createdAt": null,
-  //         "updatedAt": expect.any(String),
-  //         "userId": 1,
-  //         "runningScore": 138,
-  //     })
+    await expect(response.body.data.game).toMatchObject({
+      game_id: 1,
+      yourRunningTotal: 138,
+    });
 
-  //     // Frame 9: spare and a 7, score of 17, running score of 155
+    // Frame 9: spare and a 7, score of 17, running score of 155
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 3
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 3,
+    });
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 7
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 7,
+    });
 
-  //     response = await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 7
-  //     });
+    response = await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 7,
+    });
 
-  //     await expect(response.body.data.frame).toMatchObject({
-  //         "allowedAttempts": 3,
-  //         "attempts": 3,
-  //         "frameNumber": 9,
-  //         "gameId": 1,
-  //         "score": 17,
-  //         "userId": 1,
-  //         "createdAt": expect.any(String),
-  //         "updatedAt": expect.any(String),
-  //     })
+    await expect(response.body.data.frame).toMatchObject({
+      frame_number: 9,
+      game_id: 1,
+      user_id: 1,
+    });
 
-  //     await expect(response.body.data.game).toMatchObject({
-  //         "id": expect.any(Number),
-  //         "createdAt": null,
-  //         "updatedAt": expect.any(String),
-  //         "userId": 1,
-  //         "runningScore": 155,
-  //     })
+    await expect(response.body.data.game).toMatchObject({
+      game_id: 1,
+      yourRunningTotal: 155,
+    });
 
-  //     // Frame 10: spare and a 3, score of 13, running score of 168
+    // Frame 10: spare and a 3, score of 13, running score of 168
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 1
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 1,
+    });
 
-  //     await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 9
-  //     });
+    await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 9,
+    });
 
-  //     response = await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 3
-  //     });
+    response = await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 3,
+    });
 
-  //     await expect(response.body.data.frame).toMatchObject({
-  //         "allowedAttempts": 3,
-  //         "attempts": 3,
-  //         "frameNumber": 10,
-  //         "gameId": 1,
-  //         "score": 13,
-  //         "userId": 1,
-  //         "createdAt": expect.any(String),
-  //         "updatedAt": expect.any(String),
-  //     })
+    await expect(response.body.data.frame).toMatchObject({
+      frame_number: 10,
+      game_id: 1,
+      user_id: 1,
+    });
 
-  //     await expect(response.body.data.game).toMatchObject({
-  //         "id": expect.any(Number),
-  //         "createdAt": null,
-  //         "updatedAt": expect.any(String),
-  //         "userId": 1,
-  //         "runningScore": 168,
-  //     })
+    await expect(response.body.data.game).toMatchObject({
+      game_id: 1,
+      yourRunningTotal: 168,
+    });
 
-  //     response = await request(app).post("/api/throw").send({
-  //         gameId: 1,
-  //         userId: 1,
-  //         score: 10
-  //     });
-  //     await expect(response.statusCode).toEqual(500)
-  //     await expect(response.body.message).toEqual("You have already played the final frame for this game! Create a new game to play again.")
-  //     done()
-  // });
+    response = await request(app).post("/api/throw").send({
+      gameId: 1,
+      userId: 1,
+      score: 10,
+    });
+
+    await expect(response.statusCode).toEqual(500);
+    await expect(response.body.message).toEqual(
+      "You have already played the final frame for this game! Create a new game to play again."
+    );
+    done();
+  });
 });

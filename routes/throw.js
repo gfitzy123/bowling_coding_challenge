@@ -20,19 +20,35 @@ router.post("/", async function (req, res, next) {
   }
 
   try {
+    // when user throws
+    // find last frame user has scored on
+    // return all scores for all frames, assorted by frame number
+    // if no scores, score begins at one
+
+    // if there are scores
+    // check if user has any allowable attempts left
+    // if he does, score current frame
+    // if not, score next frame
+
     const gameId = req.body.gameId;
     const userId = req.body.userId;
     let response;
-    console.log("userId", userId);
     const frames = await database.query(
       `select f.frame_number, sum(s.score) as score_sum, s.user_id, f.game_id, f.id from frames as f inner join scores as s ON s.frame_id = f.id where f.game_id=${gameId} and s.user_id=${userId} group by (f.id, s.user_id, f.frame_number, f.game_id) order by f.frame_number desc`
     );
-    console.log("frames", frames);
 
-    let currentFrameIndex = 0;
+    // check if last game
+    const isLastGame = await utils.checkIfLastGame(gameId, userId);
+
+    if (isLastGame) {
+      res.status(500).send({
+        message:
+          "You have already played the final frame for this game! Create a new game to play again.",
+      });
+      return;
+    }
 
     const latestFrameWithScore = frames[0].find((frame, i) => {
-      console.log("i", i);
       if (parseInt(frame.score_sum) > 0) {
         currentFrameIndex = i;
         return frame;
@@ -64,7 +80,7 @@ router.post("/", async function (req, res, next) {
         data: {
           frame: firstFrame,
           game: {
-            gameId,
+            game_id: gameId,
             yourRunningTotal: newScore,
           },
         },
@@ -72,33 +88,18 @@ router.post("/", async function (req, res, next) {
       res.status(200).send(response);
       return;
     }
-    // create all 10 frames
-    // when user throws
-    // find last frame user has scored on
-    // return all scores for all frames, assorted by frame number
-    // if no scores, score begins at one
-
-    // if there are scores
-
-    // check if user has any allowable attempts left
-    // if he does, score current frame
-    // if not, score next frame
 
     const totalScore = parseInt(latestFrameWithScore.score_sum);
     const frameId = latestFrameWithScore.id;
-    console.log("frameId", frameId);
     const attemptCountResult = await database.query(
       `SELECT COUNT(id) FROM scores where frame_id=${frameId} GROUP BY frame_id`
     );
     const runningTotal = frames[0].reduce(utils.getSum, 0);
     const attemptCount = parseInt(attemptCountResult[0][0].count);
-    console.log("at", typeof attemptCount);
-    console.log("attempts", attemptCount);
 
     if (attemptCount === 1) {
       // user is on second attempt
       // use next frame to score
-      console.log("???", userId, gameId);
       await Score.create({
         score: newScore,
         attempt: 2,
@@ -113,17 +114,16 @@ router.post("/", async function (req, res, next) {
         data: {
           frame: { ...latestFrameWithScore, score: newScore },
           game: {
-            gameId,
+            game_id: gameId,
             yourRunningTotal: runningTotal + newScore,
           },
         },
       };
     }
-    console.log("totalScore + newScore", totalScore + newScore);
-
+    // users third attempt
     if (attemptCount === 2) {
       // find out if user will get one more attempt
-      if (totalScore + newScore >= 10) {
+      if (totalScore >= 10) {
         // user has one more attempt
         // use current frame to score
         await Score.create({
@@ -140,14 +140,14 @@ router.post("/", async function (req, res, next) {
           data: {
             frame: latestFrameWithScore,
             game: {
-              gameId,
+              game_id: gameId,
               yourRunningTotal: runningTotal + newScore,
             },
           },
         };
         res.status(200).send(response);
         return;
-      } else if (totalScore + newScore < 10) {
+      } else if (totalScore < 10) {
         // user has no more attempts and has completed frame
         // use next frame to score
         const nextFrame = await Frame.findOne({
@@ -155,23 +155,22 @@ router.post("/", async function (req, res, next) {
             frame_number: parseInt(latestFrameWithScore.frame_number) + 1,
             game_id: gameId,
           },
+          raw: true,
         });
-
         await Score.create({
           score: newScore,
           attempt: 1,
           user_id: userId,
           game_id: gameId,
-          frame_id: nextFrame.dataValues.id,
+          frame_id: nextFrame.id,
         });
-
         response = {
           status: 200,
           message: "Score applied to frame!",
           data: {
             frame: { ...nextFrame, score: totalScore + newScore },
             game: {
-              gameId,
+              game_id: gameId,
               yourRunningTotal: runningTotal + newScore,
             },
           },
@@ -184,19 +183,13 @@ router.post("/", async function (req, res, next) {
     if (attemptCount === 3) {
       // user has completed last frame
       // use next frame to score
-      console.log(
-        "latestFrameWithScore.frame_number",
-        latestFrameWithScore.frame_number
-      );
-      console.log("frameslength", frames.length);
-      // console.log()
       const nextFrame = await Frame.findOne({
         where: {
           frame_number: parseInt(latestFrameWithScore.frame_number) + 1,
           game_id: gameId,
         },
       });
-      console.log("nextFrameId", nextFrame);
+
       await Score.create({
         score: newScore,
         attempt: 1,
@@ -211,15 +204,15 @@ router.post("/", async function (req, res, next) {
         data: {
           frame: { ...nextFrame, score: newScore },
           game: {
-            gameId,
+            game_id: gameId,
             yourRunningTotal: runningTotal + newScore,
           },
         },
       };
     }
+
     res.status(200).send(response);
   } catch (e) {
-    console.log("catch e", e);
     const response = {
       status: 500,
       message: JSON.stringify(e),
